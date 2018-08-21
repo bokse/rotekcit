@@ -1,0 +1,26 @@
+{
+  "name": "interpark-ticketor",
+  "version": "1.0.0",
+  "description": "",
+  "main": "ticketor.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bokse/interpark-ticketor.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/bokse/interpark-ticketor/issues"
+  },
+  "homepage": "https://github.com/bokse/interpark-ticketor#readme",
+  "dependencies": {
+    "bluebird": "^3.5.1",
+    "child_process": "^1.0.2",
+    "debug": "^3.1.0",
+    "lodash": "^4.17.5",
+    "puppeteer": "^1.3.0"
+  }
+}
