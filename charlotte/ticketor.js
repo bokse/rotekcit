@@ -56,39 +56,47 @@ async function main() {
     // 로그인 시작
     debug(`로그인 시작: 계정 ${jobConfig.account.id}`);
     await page.goto(jobConfig.loginUrl);
-    await page.waitForSelector('#user_id');
-    await page.waitForSelector('#user_password');
-    await page.waitForSelector('#frmMain > input.btn_login_submmit');
-    await page.type('#user_id', jobConfig.account.id);
-    await page.type('#user_password', jobConfig.account.pwd);
-    await page.click('#frmMain > input.btn_login_submmit');
-    await Promise.delay(1000);
-    debug('로그인 성공');
+    // await page.waitForSelector('#user_id');
+    // await page.waitForSelector('#user_password');
+    // await page.waitForSelector('#frmMain > input.btn_login_submmit');
+    // await page.type('#user_id', jobConfig.account.id);
+    // await page.type('#user_password', jobConfig.account.pwd);
+    // await page.click('#frmMain > input.btn_login_submmit');
+    // await Promise.delay(1000);
+    // debug('로그인 성공');
 
     //@TODO: 풀리는 시간까지 기다리기
 
-    // process.stdin._read(1);
    
+    await Promise.delay(20000);
     timer('-------------------예약 시작-------------------');
 
     await waitFor(async() => {
         debug('공연페이지로 이동');
         await page.goto(jobConfig.performanceUrl);
 
-        return await page.waitForSelector('#reserv_pop')
+        return await page.waitForSelector('#reserv_pop', { timeout: 100 })
     }, {
-        maxCount: 10000,
+        maxCount: 100000,
         delay: 0,
     })
 
     page.on('dialog', dialog => {
-        debug(dialog.message());
+        const msg = dialog.message();
+        debug(msg);
         dialog.accept();
     });
-
+    
     const revPage = await new Promise((resolve, reject) => {
         browser.once('targetcreated', target => {
-            resolve(target.page())
+            const p = target.page()
+            p.then(p => {
+                p.once('dialog', dialog => {
+                    debug(dialog.message());
+                    dialog.accept();
+                });
+            })
+            resolve(p)
         });
 
         page.waitForSelector('#reserv_pop')
@@ -101,7 +109,7 @@ async function main() {
 
     debug('예약 페이지 찾았다.')
 
-    await Promise.delay(500);
+    await Promise.delay(1000);
     await revPage.evaluate(ymd => {
         step.RunEvt('selectPlaydate', this, ymd)
     }, jobConfig.date.ymd)
@@ -127,8 +135,8 @@ async function main() {
     await waitFor(async() => {
         debug('좌석 선택 창 진입')
 
-        await revPage.waitForSelector('img[title^="1층 B구역"][data-status="2"]')
-        const seats = await revPage.$$('img[title^="1층 B구역"][data-status="2"]')
+        await revPage.waitForSelector('img[title^="[VIP석] 1층 B구역"][data-status="2"]')
+        const seats = await revPage.$$('img[title^="[VIP석] 1층 B구역"][data-status="2"]')
     
         const z = new Map();
     
@@ -165,7 +173,7 @@ async function main() {
                     col: p.c + 1,
                 });
                 revCnt += 2;
-                await Promise.delay(20);
+                await Promise.delay(200);
             }
         }
 

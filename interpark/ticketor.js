@@ -180,7 +180,8 @@ async function main() {
     const revPage = await waitFor(async() => {
         debug('예약페이지 찾자');
         return _.find(await browser.pages(), page => {
-            return page.url() == 'http://ticket.interpark.com/Book/BookMain.asp';
+            // 뒤에 주소는 deprecated
+            return page.url() == 'https://poticket.interpark.com/Book/BookMain.asp' || page.url() == 'https://ticket.interpark.com/Book/BookMain.asp';
         });
     });
     await revPage.setViewport({ width: 1280, height: 720, });
@@ -193,54 +194,64 @@ async function main() {
                 return true;
             }).catch(e => {
                 debug('닫기 버튼 없음');
+                return true;
             });
         });
     
-        const bookStepFrame = await waitFor(async() => {
-            debug('예약페이지에서 달력찾자');
-            return _.find(revPage.frames(), frame => {
-                return frame.name() == 'ifrmBookStep';
-            });
-        });
-        await bookStepFrame.waitForSelector('#CellPlaySeq');
-        await bookStepFrame.$$eval('#CellPlaySeq', (elements, timeText) => {
-            for (const ele of elements) {
-                if (ele.innerText.includes(timeText)) {
-                    ele.click();
-                    return;
-                }
-            }
-        }, `${jobConfig.date.hour}시 ${jobConfig.date.min}분`);
+        // const bookStepFrame = await waitFor(async() => {
+        //     debug('예약페이지에서 달력찾자');
+        //     return _.find(revPage.frames(), frame => {
+        //         return frame.name() == 'ifrmBookStep';
+        //     });
+        // });
+        // await bookStepFrame.waitForSelector('#CellPlaySeq');
+        // await bookStepFrame.$$eval('#CellPlaySeq', (elements, timeText) => {
+        //     for (const ele of elements) {
+        //         if (ele.innerText.includes(timeText)) {
+        //             ele.click();
+        //             return;
+        //         }
+        //     }
+        // }, `${jobConfig.date.hour}시 ${jobConfig.date.min}분`);
     
         await revPage.$eval('#LargeNextBtnLink', ele => {
             eval(ele.href);
         })
-    
+
         const seatDetailFrame = await waitFor(async() => {
             debug('좌석 찾자');
             return _.find(revPage.frames(), frame => {
                 return frame.name() == 'ifrmSeatDetail';
             });
         });
-    
+
+        await seatDetailFrame.evaluate(region => {
+            GetBlockSeatList('', '', region)
+        }, process.env.CONF_REGION)
+
         let revCnt = 0;
         const revInfos = [];
     
         for (const level of jobConfig.seat.levels) {
             if (revCnt == jobConfig.wantCnt) break;
     
-            const isAnySeat = await seatDetailFrame.waitForSelector(`img[title^="[${level}석]"].stySeat`, {
-                timeout: 500,
-            }).then(r => true).catch(e => {
-                debug(`${level}석이 없습니다`);
-            });
+            // const isAnySeat = await seatDetailFrame.waitForSelector(`img[title^="[${level}석]"].stySeat`, {
+            //     timeout: 500,
+            // }).then(r => true).catch(e => {
+            //     debug(`${level}석이 없습니다`);
+            // });
             
-            if (!isAnySeat) {
+            // if (!isAnySeat) {
+            //     continue;
+            // }
+    
+            // const seats = await seatDetailFrame.$$(`img[title^="[${level}석]"].stySeat`);
+            const seats = await seatDetailFrame.$$(`img.stySeat`);
+            debug(`${level}석 ${seats.length}개`)
+
+            if (seats.length == 0) {
                 continue;
             }
-    
-            const seats = await seatDetailFrame.$$(`img[title^="[${level}석]"].stySeat`);
-            debug(`${level}석 ${seats.length}개`)
     
             const z = new Map();
     
@@ -256,7 +267,7 @@ async function main() {
                     debug(`정규표현식 안맞음 title = ${title}`)
                 }
             });
-    
+
             for (const row of jobConfig.seat.rows) {
                 if (revCnt == jobConfig.wantCnt) break;
                 for(const col of jobConfig.seat.cols) {
